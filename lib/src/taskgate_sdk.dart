@@ -14,13 +14,20 @@ import 'completion_status.dart';
 class TaskGateSdk {
   static const MethodChannel _channel = MethodChannel('taskgate_sdk');
 
+  // Use a broadcast StreamController with manual replay of last task
   static final StreamController<TaskInfo> _taskController =
       StreamController<TaskInfo>.broadcast();
 
   static bool _initialized = false;
   static TaskInfo? _pendingTask;
+  static TaskInfo? _lastEmittedTask; // Track last emitted for replay
+  static String? _lastCompletedSessionId; // Track completed sessions
 
   /// Stream of incoming task requests
+  ///
+  /// This stream replays the last task to new subscribers if one is pending.
+  /// This solves the cold start race condition where the native SDK receives
+  /// a task before Flutter code subscribes.
   ///
   /// Listen to this stream to receive task notifications:
   /// ```dart
@@ -28,7 +35,10 @@ class TaskGateSdk {
   ///   print('Received task: ${task.taskId}');
   /// });
   /// ```
-  static Stream<TaskInfo> get taskStream => _taskController.stream;
+  static Stream<TaskInfo> get taskStream {
+    // Return a stream that replays the pending task to new subscribers
+    return _ReplayStream(_taskController.stream, () => _pendingTask);
+  }
 
   /// Initialize the SDK
   ///
@@ -53,7 +63,7 @@ class TaskGateSdk {
     _initialized = true;
     debugPrint('[TaskGateSdk] Initialized for provider: $providerId');
 
-    // Check for any pending task immediately
+    // Check for any pending task immediately (handles cold start)
     await _checkPendingTask();
   }
 
@@ -86,14 +96,24 @@ class TaskGateSdk {
   /// Report task completion to TaskGate
   ///
   /// Call this when the user completes (or cancels) a task.
+  /// This clears the pending task state to prevent stale tasks on subsequent starts.
   ///
   /// - [status]: The completion status (open, focus, or cancelled)
   static Future<void> reportCompletion(CompletionStatus status) async {
     _ensureInitialized();
 
     try {
+      // Track the completed session to prevent replaying stale tasks
+      if (_pendingTask != null) {
+        _lastCompletedSessionId = _pendingTask!.sessionId;
+      }
+
       await _channel.invokeMethod('reportCompletion', {'status': status.value});
+
+      // Clear all task state
       _pendingTask = null;
+      _lastEmittedTask = null;
+
       debugPrint('[TaskGateSdk] Reported completion: ${status.value}');
     } on PlatformException catch (e) {
       debugPrint('[TaskGateSdk] Error reporting completion: ${e.message}');
@@ -128,6 +148,8 @@ class TaskGateSdk {
     _channel.setMethodCallHandler(null);
     _initialized = false;
     _pendingTask = null;
+    _lastEmittedTask = null;
+    _lastCompletedSessionId = null;
     debugPrint('[TaskGateSdk] Disposed');
   }
 
@@ -138,13 +160,35 @@ class TaskGateSdk {
       case 'onTaskReceived':
         final args = call.arguments as Map<dynamic, dynamic>;
         final task = TaskInfo.fromMap(args);
-        _pendingTask = task;
-        _taskController.add(task);
-        debugPrint('[TaskGateSdk] Task received via callback: ${task.taskId}');
+        _emitTask(task);
         break;
       default:
         debugPrint('[TaskGateSdk] Unknown method: ${call.method}');
     }
+  }
+
+  /// Emit a task to the stream, with duplicate/stale filtering
+  static void _emitTask(TaskInfo task) {
+    // Skip if this session was already completed
+    if (_lastCompletedSessionId != null &&
+        task.sessionId == _lastCompletedSessionId) {
+      debugPrint(
+          '[TaskGateSdk] Ignoring stale task from completed session: ${task.sessionId}');
+      return;
+    }
+
+    // Skip if same task already emitted
+    if (_lastEmittedTask != null &&
+        _lastEmittedTask!.sessionId == task.sessionId) {
+      debugPrint('[TaskGateSdk] Ignoring duplicate task: ${task.sessionId}');
+      return;
+    }
+
+    _pendingTask = task;
+    _lastEmittedTask = task;
+    _taskController.add(task);
+    debugPrint(
+        '[TaskGateSdk] Task emitted: ${task.taskId} (session: ${task.sessionId})');
   }
 
   static void _setupLifecycleObserver() {
@@ -160,11 +204,9 @@ class TaskGateSdk {
 
   static Future<void> _checkPendingTask() async {
     final task = await getPendingTask();
-    if (task != null && _pendingTask?.sessionId != task.sessionId) {
-      // New task received
-      _pendingTask = task;
-      _taskController.add(task);
-      debugPrint('[TaskGateSdk] New task detected: ${task.taskId}');
+    if (task != null) {
+      // Use _emitTask which handles duplicate/stale filtering
+      _emitTask(task);
     }
   }
 
@@ -189,4 +231,43 @@ class _TaskGateLifecycleObserver extends WidgetsBindingObserver {
       onResumed();
     }
   }
+}
+
+/// A stream wrapper that replays the pending task to new subscribers.
+/// This solves the cold start race condition where native fires before Flutter subscribes.
+class _ReplayStream<T> extends Stream<T> {
+  final Stream<T> _source;
+  final T? Function() _getPendingValue;
+
+  _ReplayStream(this._source, this._getPendingValue);
+
+  @override
+  StreamSubscription<T> listen(
+    void Function(T event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    // First, subscribe to the underlying stream
+    final subscription = _source.listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
+
+    // Then, replay the pending value if one exists
+    final pending = _getPendingValue();
+    if (pending != null && onData != null) {
+      // Use a microtask to ensure the subscription is fully set up first
+      Future.microtask(() {
+        onData(pending);
+      });
+    }
+
+    return subscription;
+  }
+
+  @override
+  bool get isBroadcast => _source.isBroadcast;
 }

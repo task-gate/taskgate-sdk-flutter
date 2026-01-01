@@ -5,6 +5,7 @@ import TaskGateSDK
 public class TaskGateSdkPlugin: NSObject, FlutterPlugin {
     private var channel: FlutterMethodChannel?
     private var registrar: FlutterPluginRegistrar?
+    private var lastDeliveredSessionId: String? // Track to prevent duplicates
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "taskgate_sdk", binaryMessenger: registrar.messenger())
@@ -52,7 +53,16 @@ public class TaskGateSdkPlugin: NSObject, FlutterPlugin {
         
         // Set up callback to forward to Flutter
         TaskGateSDK.shared.setTaskCallback { [weak self] taskInfo in
-            self?.channel?.invokeMethod("onTaskReceived", arguments: self?.taskInfoToDict(taskInfo))
+            guard let self = self else { return }
+            
+            // Prevent duplicate deliveries
+            if self.lastDeliveredSessionId == taskInfo.sessionId {
+                print("[TaskGateSdkPlugin] Ignoring duplicate task: \(taskInfo.sessionId)")
+                return
+            }
+            
+            self.lastDeliveredSessionId = taskInfo.sessionId
+            self.channel?.invokeMethod("onTaskReceived", arguments: self.taskInfoToDict(taskInfo))
         }
     }
     
@@ -68,6 +78,10 @@ public class TaskGateSdkPlugin: NSObject, FlutterPlugin {
         default:
             completionStatus = .cancelled
         }
+        
+        // Clear tracking state to prevent stale tasks on next start
+        lastDeliveredSessionId = nil
+        
         TaskGateSDK.shared.reportCompletion(completionStatus)
     }
     

@@ -12,7 +12,6 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 import com.taskgate.sdk.TaskGateSDK
-import com.taskgate.sdk.TaskInfo
 
 /**
  * TaskGateSdkPlugin - Flutter plugin for TaskGate SDK
@@ -23,6 +22,7 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private lateinit var channel: MethodChannel
     private var activity: Activity? = null
     private var activityBinding: ActivityPluginBinding? = null
+    private var lastDeliveredSessionId: String? = null // Track to prevent duplicates
     
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "taskgate_sdk")
@@ -41,7 +41,7 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                 }
             }
             "getPendingTask" -> {
-                val taskInfo = TaskGateSDK.getInstance().getPendingTask()
+                val taskInfo = TaskGateSDK.getPendingTask()
                 if (taskInfo != null) {
                     result.success(taskInfoToMap(taskInfo))
                 } else {
@@ -66,32 +66,42 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private fun initialize(providerId: String) {
         val act = activity
         if (act != null) {
-            TaskGateSDK.getInstance().initialize(act.application, providerId)
-            
+            TaskGateSDK.initialize(act.application, providerId)
+
             // Set up callback to forward to Flutter
-            TaskGateSDK.getInstance().setTaskCallback { taskInfo ->
+            TaskGateSDK.setTaskCallback { taskInfo ->
+                // Prevent duplicate deliveries
+                if (lastDeliveredSessionId == taskInfo.sessionId) {
+                    android.util.Log.d("TaskGateSdkPlugin", "Ignoring duplicate task: ${taskInfo.sessionId}")
+                    return@setTaskCallback
+                }
+                
+                lastDeliveredSessionId = taskInfo.sessionId
                 channel.invokeMethod("onTaskReceived", taskInfoToMap(taskInfo))
             }
-            
+
             // Handle initial intent if app was cold started via deep link
             handleIntent(act.intent)
         }
     }
 
     private fun reportCompletion(status: String) {
-        val act = activity ?: return
         val completionStatus = when (status) {
             "open" -> TaskGateSDK.CompletionStatus.OPEN
             "focus" -> TaskGateSDK.CompletionStatus.FOCUS
             "cancelled" -> TaskGateSDK.CompletionStatus.CANCELLED
             else -> TaskGateSDK.CompletionStatus.CANCELLED
         }
-        TaskGateSDK.getInstance().reportCompletion(act, completionStatus)
+        
+        // Clear tracking state to prevent stale tasks on next start
+        lastDeliveredSessionId = null
+        
+        TaskGateSDK.reportCompletion(completionStatus)
     }
 
     private fun handleIntent(intent: Intent?): Boolean {
         if (intent?.data != null) {
-            val handled = TaskGateSDK.getInstance().handleIntent(intent)
+            val handled = TaskGateSDK.handleIntent(intent)
             if (handled) {
                 // Task info is now pending, will be delivered via callback or getPendingTask
                 return true
@@ -100,7 +110,7 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         return false
     }
 
-    private fun taskInfoToMap(taskInfo: TaskInfo): Map<String, Any?> {
+    private fun taskInfoToMap(taskInfo: TaskGateSDK.TaskInfo): Map<String, Any?> {
         return mapOf(
             "taskId" to taskInfo.taskId,
             "sessionId" to taskInfo.sessionId,

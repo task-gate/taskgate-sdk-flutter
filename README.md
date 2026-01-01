@@ -12,13 +12,19 @@ TaskGate SDK allows Flutter apps to integrate with [TaskGate](https://taskgate.c
 - 🔄 Handles cold start and warm start scenarios
 - ⏰ Automatic lifecycle management
 
+<!-- Demo video placeholder:
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/YOUR-VIDEO-ID.mp4" width="300" />
+</p>
+-->
+
 ## Installation
 
 Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  taskgate_sdk: ^1.0.0
+  taskgate_sdk: ^1.1.0
 ```
 
 Then run:
@@ -132,7 +138,7 @@ void main() async {
 
 ### Listen for Tasks
 
-Use the stream to receive task notifications:
+Use the stream to receive task notifications. The stream automatically replays any pending task from cold start:
 
 ```dart
 class _MyAppState extends State<MyApp> {
@@ -142,21 +148,11 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    // Listen for incoming tasks
+    // Listen for incoming tasks (auto-replays pending task on cold start)
     _taskSubscription = TaskGateSdk.taskStream.listen((task) {
       print('Received task: ${task.taskId}');
       _navigateToTask(task);
     });
-
-    // Check for pending task on cold start
-    _checkPendingTask();
-  }
-
-  Future<void> _checkPendingTask() async {
-    final task = await TaskGateSdk.getPendingTask();
-    if (task != null) {
-      _navigateToTask(task);
-    }
   }
 
   void _navigateToTask(TaskInfo task) {
