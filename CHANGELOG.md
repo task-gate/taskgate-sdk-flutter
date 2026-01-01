@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 - 2026-01-01
+
+* Release version 1.0.1
+
 ## 1.0.0
 
 - Initial release

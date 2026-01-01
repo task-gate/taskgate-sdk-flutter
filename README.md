@@ -229,16 +229,26 @@ await TaskGateSdk.cancelTask();
 
 See the [example](example/) directory for a complete sample app.
 
-## Partnership
+## Becoming a Partner
 
-Interested in integrating with TaskGate? Visit [taskgate.co/partnership](https://taskgate.co/partnership) or contact us at partnerships@taskgate.co.
+Visit **[taskgate.co](https://taskgate.co)** to learn more about partnership opportunities.
+
+**[Contact us](https://taskgate.co/contact-us)** to register and get your `providerId`.
+
+---
 
 ## Support
 
-- 📧 Email: support@taskgate.co
-- 🐛 Issues: [GitHub Issues](https://github.com/taskgate/taskgate-flutter-sdk/issues)
-- 📖 Documentation: [taskgate.co/docs](https://taskgate.co/docs)
+- **Website:** [taskgate.co](https://taskgate.co)
+- **Contact:** [taskgate.co/contact-us](https://taskgate.co/contact-us)
+- **Docs:** [taskgate.co/partnership](https://taskgate.co/partnership)
+
+---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - See [LICENSE](LICENSE) file for details.
+
+---
+
+**Made with ❤️ for TaskGate Partners**

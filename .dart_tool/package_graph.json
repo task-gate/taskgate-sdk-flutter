@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "taskgate_sdk",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "dependencies": [
         "flutter"
       ],
