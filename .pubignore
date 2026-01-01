@@ -1,0 +1,5 @@
+# Exclude everything from parent directories
+../*
+
+# Only include the SDK directory contents
+!../taskgate_sdk/
