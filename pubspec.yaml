@@ -1,6 +1,6 @@
 name: taskgate_sdk
 description: TaskGate SDK for Flutter - integrate with TaskGate to receive task requests and report completion.
-version: 1.0.1
+version: 1.0.2
 homepage: https://taskgate.co
 repository: https://github.com/task-gate/taskgate-sdk-flutter
 
