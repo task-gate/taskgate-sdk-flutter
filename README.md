@@ -12,9 +12,11 @@ TaskGate SDK allows Flutter apps to integrate with [TaskGate](https://taskgate.c
 - 🔄 Handles cold start and warm start scenarios
 - ⏰ Automatic lifecycle management
 
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/de0af2fb-252d-402d-9a8a-d942655f2725" width="300" />
-</p>
+https://github.com/user-attachments/assets/de0af2fb-252d-402d-9a8a-d942655f2725
+
+<!-- <p align="center">
+  <video src="" width="300" />
+</p> -->
 
 ## Installation
 
