@@ -4,7 +4,12 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'taskgate_sdk'
-  s.version          = '1.0.0'
+  
+  # Version for the Flutter plugin's iOS bridge code (ios/Classes/)
+  # This is required by Flutter's plugin system
+  # Keep in sync with pubspec.yaml version
+  s.version          = '1.0.11'
+  
   s.summary          = 'TaskGate SDK for Flutter - integrate with TaskGate to receive tasks'
   s.description      = <<-DESC
 TaskGate SDK allows partner apps to integrate with TaskGate to receive task requests
@@ -16,7 +21,11 @@ and report task completion status.
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
   s.dependency 'Flutter'
+  
+  # TaskGate iOS SDK from CocoaPods (published from sdk/ios/TaskGateSDK/)
+  # Update version here after publishing new SDK version to CocoaPods
   s.dependency 'TaskGateSDK', '~> 1.0.7'
+  
   s.platform         = :ios, '13.0'
   
   # Flutter.framework does not contain a i386 slice.

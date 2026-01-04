@@ -114,7 +114,6 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         return mapOf(
             "taskId" to taskInfo.taskId,
             "sessionId" to taskInfo.sessionId,
-            "callbackUrl" to taskInfo.callbackUrl,
             "appName" to taskInfo.appName,
             "additionalParams" to taskInfo.additionalParams
         )

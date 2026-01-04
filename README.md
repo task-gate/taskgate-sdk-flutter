@@ -12,7 +12,6 @@ TaskGate SDK allows Flutter apps to integrate with [TaskGate](https://taskgate.c
 - 🔄 Handles cold start and warm start scenarios
 - ⏰ Automatic lifecycle management
 
-
 ![Demo](https://github.com/user-attachments/assets/cadb9e88-6062-4061-8ffa-d6f68fbffda3)
 
 ▶️ **Watch full demo video:**  
@@ -205,13 +204,12 @@ await TaskGateSdk.cancelTask();
 
 ### TaskInfo
 
-| Property           | Type                  | Description               |
-| ------------------ | --------------------- | ------------------------- |
-| `taskId`           | `String`              | Unique task identifier    |
-| `sessionId`        | `String`              | Session identifier        |
-| `callbackUrl`      | `String`              | URL to return to TaskGate |
-| `appName`          | `String?`             | Name of blocked app       |
-| `additionalParams` | `Map<String, String>` | Additional parameters     |
+| Property           | Type                  | Description            |
+| ------------------ | --------------------- | ---------------------- |
+| `taskId`           | `String`              | Unique task identifier |
+| `sessionId`        | `String`              | Session identifier     |
+| `appName`          | `String?`             | Name of blocked app    |
+| `additionalParams` | `Map<String, String>` | Additional parameters  |
 
 ### CompletionStatus
 

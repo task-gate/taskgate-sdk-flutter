@@ -89,7 +89,6 @@ public class TaskGateSdkPlugin: NSObject, FlutterPlugin {
         return [
             "taskId": taskInfo.taskId,
             "sessionId": taskInfo.sessionId,
-            "callbackUrl": taskInfo.callbackUrl,
             "appName": taskInfo.appName,
             "additionalParams": taskInfo.additionalParams
         ]

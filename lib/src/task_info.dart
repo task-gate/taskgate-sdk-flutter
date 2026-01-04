@@ -6,9 +6,6 @@ class TaskInfo {
   /// The session identifier for this task request
   final String sessionId;
 
-  /// The callback URL to return to TaskGate
-  final String callbackUrl;
-
   /// The name of the app that was blocked (optional)
   final String? appName;
 
@@ -18,7 +15,6 @@ class TaskInfo {
   const TaskInfo({
     required this.taskId,
     required this.sessionId,
-    required this.callbackUrl,
     this.appName,
     this.additionalParams = const {},
   });
@@ -27,7 +23,6 @@ class TaskInfo {
     return TaskInfo(
       taskId: map['taskId'] as String? ?? '',
       sessionId: map['sessionId'] as String? ?? '',
-      callbackUrl: map['callbackUrl'] as String? ?? '',
       appName: map['appName'] as String?,
       additionalParams: Map<String, String>.from(
         (map['additionalParams'] as Map<dynamic, dynamic>?) ?? {},
@@ -39,7 +34,6 @@ class TaskInfo {
     return {
       'taskId': taskId,
       'sessionId': sessionId,
-      'callbackUrl': callbackUrl,
       'appName': appName,
       'additionalParams': additionalParams,
     };
