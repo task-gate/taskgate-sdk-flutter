@@ -16,7 +16,7 @@ and report task completion status.
   s.source           = { :path => '.' }
   s.source_files     = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'TaskGateSDK', '~> 1.0.6'
+  s.dependency 'TaskGateSDK', '~> 1.0.7'
   s.platform         = :ios, '13.0'
   
   # Flutter.framework does not contain a i386 slice.
