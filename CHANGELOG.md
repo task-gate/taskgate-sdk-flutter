@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.13 - 2026-11-07
+
+* iOS: Swift Package Manager support, so apps without CocoaPods can use the
+  plugin. The plugin's Swift code moved to `ios/taskgate_sdk/Sources/`; the
+  podspec still works for CocoaPods apps.
+
 ## 1.0.12 - 2026-11-07
 
 * Add `CompletionStatus.changeTask`: sends the user back to TaskGate to pick
