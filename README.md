@@ -187,6 +187,14 @@ await TaskGateSdk.reportCompletion(CompletionStatus.cancelled);
 await TaskGateSdk.cancelTask();
 ```
 
+If the user can't do your task (for example, it needs a subscription they
+don't have), send them back to TaskGate to pick another task. The blocked app
+stays blocked, and TaskGate opens Edit Task for that schedule:
+
+```dart
+await TaskGateSdk.reportCompletion(CompletionStatus.changeTask);
+```
+
 ## API Reference
 
 ### TaskGateSdk
@@ -218,6 +226,7 @@ await TaskGateSdk.cancelTask();
 | `open`      | User completed task, open blocked app |
 | `focus`     | User completed task, stay focused     |
 | `cancelled` | User cancelled the task               |
+| `changeTask` | User wants another task; the app stays blocked |
 
 ## Example
 

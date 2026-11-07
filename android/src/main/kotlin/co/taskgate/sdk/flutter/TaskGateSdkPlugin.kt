@@ -2,6 +2,7 @@ package co.taskgate.sdk.flutter
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -23,6 +24,12 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private var activity: Activity? = null
     private var activityBinding: ActivityPluginBinding? = null
     private var lastDeliveredSessionId: String? = null // Track to prevent duplicates
+    private var providerId: String? = null
+    // The native SDK keeps the callback link private, so the plugin keeps its
+    // own copy for results the native SDK doesn't know (change_task).
+    private var callbackUrl: String? = null
+    // A session the plugin finished itself; the native SDK still holds it.
+    private var completedSessionId: String? = null
     
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "taskgate_sdk")
@@ -42,7 +49,7 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             }
             "getPendingTask" -> {
                 val taskInfo = TaskGateSDK.getPendingTask()
-                if (taskInfo != null) {
+                if (taskInfo != null && taskInfo.sessionId != completedSessionId) {
                     result.success(taskInfoToMap(taskInfo))
                 } else {
                     result.success(null)
@@ -66,12 +73,14 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private fun initialize(providerId: String) {
         val act = activity
         if (act != null) {
+            this.providerId = providerId
             TaskGateSDK.initialize(act.application, providerId)
 
             // Set up callback to forward to Flutter
             TaskGateSDK.setTaskCallback { taskInfo ->
                 // Prevent duplicate deliveries
-                if (lastDeliveredSessionId == taskInfo.sessionId) {
+                if (lastDeliveredSessionId == taskInfo.sessionId ||
+                    completedSessionId == taskInfo.sessionId) {
                     android.util.Log.d("TaskGateSdkPlugin", "Ignoring duplicate task: ${taskInfo.sessionId}")
                     return@setTaskCallback
                 }
@@ -86,6 +95,10 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     }
 
     private fun reportCompletion(status: String) {
+        if (status == "change_task") {
+            reportChangeTask()
+            return
+        }
         val completionStatus = when (status) {
             "open" -> TaskGateSDK.CompletionStatus.OPEN
             "focus" -> TaskGateSDK.CompletionStatus.FOCUS
@@ -95,14 +108,41 @@ class TaskGateSdkPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         
         // Clear tracking state to prevent stale tasks on next start
         lastDeliveredSessionId = null
+        callbackUrl = null
         
         TaskGateSDK.reportCompletion(completionStatus)
+    }
+
+    /// Opens TaskGate's callback link with status=change_task, built the same
+    /// way as the native SDK's reportCompletion.
+    private fun reportChangeTask() {
+        val task = TaskGateSDK.getPendingTask()
+        val callback = callbackUrl
+        if (task == null || callback == null || task.sessionId == completedSessionId) {
+            android.util.Log.w("TaskGateSdkPlugin", "change_task: no pending task")
+            return
+        }
+        val uri = Uri.parse(callback).buildUpon()
+            .appendQueryParameter("status", "change_task")
+            .appendQueryParameter("provider_id", providerId)
+            .appendQueryParameter("session_id", task.sessionId)
+            .appendQueryParameter("task_id", task.taskId)
+            .build()
+        val context = activity ?: return
+        context.startActivity(Intent(Intent.ACTION_VIEW, uri).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+        completedSessionId = task.sessionId
+        lastDeliveredSessionId = null
+        callbackUrl = null
+        android.util.Log.d("TaskGateSdkPlugin", "Completed: change_task")
     }
 
     private fun handleIntent(intent: Intent?): Boolean {
         if (intent?.data != null) {
             val handled = TaskGateSDK.handleIntent(intent)
             if (handled) {
+                callbackUrl = intent.data?.getQueryParameter("callback_url")
                 // Task info is now pending, will be delivered via callback or getPendingTask
                 return true
             }

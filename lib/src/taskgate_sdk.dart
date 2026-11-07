@@ -98,7 +98,7 @@ class TaskGateSdk {
   /// Call this when the user completes (or cancels) a task.
   /// This clears the pending task state to prevent stale tasks on subsequent starts.
   ///
-  /// - [status]: The completion status (open, focus, or cancelled)
+  /// - [status]: The completion status (open, focus, cancelled or changeTask)
   static Future<void> reportCompletion(CompletionStatus status) async {
     _ensureInitialized();
 

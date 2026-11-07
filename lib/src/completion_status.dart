@@ -7,7 +7,11 @@ enum CompletionStatus {
   focus('focus'),
 
   /// User cancelled the task
-  cancelled('cancelled');
+  cancelled('cancelled'),
+
+  /// User can't do this task (for example, it needs a subscription) and wants
+  /// to pick another task in TaskGate. The app stays blocked.
+  changeTask('change_task');
 
   final String value;
   const CompletionStatus(this.value);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.12 - 2026-11-07
+
+* Add `CompletionStatus.changeTask`: sends the user back to TaskGate to pick
+  another task when they can't do yours (for example, it needs a
+  subscription). The blocked app stays blocked.
+* `getPendingTask()` no longer returns a task that was finished with
+  `changeTask`.
+
 ## 1.0.11 - 2026-01-04
 
 * Release version 1.0.11
